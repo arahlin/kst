@@ -508,39 +508,6 @@ set(CPACK_DEBIAN_PACKAGE_DEPENDS "libqtgui4 (>= 4.4.3-0)")
 
 
 if(APPLE)
-    # We start from build/bin/kst2.app, all is build into the final bundle folder
-    # On the mac the paths to needed shared libraries are hardcoded in the binary/library
-    # which could be changed by the macro 'fixup_bundle'
-    # libs which are hardcoded are resolved automatically
-    # but the plugins must be passed as extra argument because they are not hardcoded in the binary
-
-    set(bundle_dir ${kst_build_dir}/bin)
-    set(contents_dir ${kst_binary_name}.app/Contents)
-
-    set(app ${bundle_dir}/${kst_binary_name}.app)
-    install(DIRECTORY "${QT_PLUGINS_DIR}/imageformats" DESTINATION ${contents_dir}/plugins COMPONENT Runtime)
-
-    # install and link the icon file in the bundle
-    install(FILES ${kst_dir}/src/images/kst.icns DESTINATION ${contents_dir}/Resources COMPONENT Runtime)
-    set_target_properties(
-        ${kst_binary_name}
-        PROPERTIES
-            MACOSX_BUNDLE_INFO_STRING "${kst_version}"
-            MACOSX_BUNDLE_ICON_FILE "kst.icns"
-    )
-
-    install(CODE
-        "file(GLOB qt_plugins \"${bundle_dir}/${contents_dir}/plugins/imageformats/*${CMAKE_SHARED_LIBRARY_SUFFIX}\")
-        file(GLOB kst_plugins \"${bundle_dir}/${contents_dir}/plugins/*${CMAKE_SHARED_MODULE_SUFFIX}\")
-        set(libs \${qt_plugins} \${kst_plugins})
-        set(BU_CHMOD_BUNDLE_ITEMS 1)
-        include(BundleUtilities)
-        fixup_bundle(\"${app}\" \"\${libs}\" \"${dir}\") "
-        COMPONENT RUNTIME)
-
-    file(WRITE ${CMAKE_BINARY_DIR}/qt.conf "")
-    install(FILES ${CMAKE_BINARY_DIR}/qt.conf DESTINATION ${contents_dir}/Resources COMPONENT Runtime)
-
     set(CPACK_GENERATOR DragNDrop)
 endif()
 

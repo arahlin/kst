@@ -14,6 +14,13 @@ if(WIN32)
 	else()
 		set(rc_file ${kst_dir}/src/kst/kst_icon.rc)
 	endif()
+else()
+	if(APPLE)
+		set(MACOSX_BUNDLE_INFO_STRING ${kst_version})
+		set(MACOSX_BUNDLE_ICON_FILE kst.icns)
+		set(rc_file ${kst_dir}/src/images/kst.icns)
+		set_source_files_properties(${rc_file} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+	endif()
 endif()
 
 kst_add_resources(src/images/icons.qrc)
@@ -90,3 +97,41 @@ if(UNIX AND kst_deploy)
 endif()
 
 
+if(APPLE)
+
+	# We start from build/bin/kst2.app, all is build into the final bundle folder
+	# On the mac the paths to needed shared libraries are hardcoded in the binary/library
+	# which could be changed by the macro 'fixup_bundle'
+	# libs which are hardcoded are resolved automatically
+	# but the plugins must be passed as extra argument because they are not hardcoded in the binary
+
+	set(kst_app ${kst_binary_name}.app)
+	set(plugins_path "plugins")
+	set(plugins_dir ${kst_app}/Contents/${plugins_path})
+	set(conf_dir ${kst_app}/Contents/Resources)
+
+	install(DIRECTORY "${QT_PLUGINS_DIR}/imageformats"
+		DESTINATION ${plugins_dir} COMPONENT Runtime)
+	if(kst_qt5)
+		install(DIRECTORY "${QT_PLUGINS_DIR}/platforms"
+			DESTINATION ${plugins_dir} COMPONENT Runtime)
+	endif()
+
+	set(qtconf "\${CMAKE_INSTALL_PREFIX}/${conf_dir}/qt.conf")
+	INSTALL(CODE "
+		file(WRITE \"${qtconf}\" \"[Paths]\\nPlugins = ${plugins_path}\\n\")
+		" COMPONENT Runtime)
+
+	set(plugins_install_dir "\${CMAKE_INSTALL_PREFIX}/${plugins_dir}")
+	install(CODE "
+		file(GLOB_RECURSE qt_plugins \"${plugins_install_dir}/*${CMAKE_SHARED_LIBRARY_SUFFIX}\")
+		file(GLOB kst_plugins \"${plugins_install_dir}/*${CMAKE_SHARED_MODULE_SUFFIX}\")
+		set(libs \${qt_plugins} \${kst_plugins})
+		set(dirs ${kst_build_dir}/lib)
+		set(BU_CHMOD_BUNDLE_ITEMS 1)
+		include(BundleUtilities)
+		fixup_bundle(\"\${CMAKE_INSTALL_PREFIX}/${kst_app}\" \"\${libs}\" \"\${dirs}\") "
+		COMPONENT Runtime
+	)
+
+endif()
