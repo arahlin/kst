@@ -16,6 +16,5 @@ make -j4
 
 make install/strip
 
-#TODO Why is /build/bin/kst2 added to the dmg?
 make package
 

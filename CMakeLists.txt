@@ -192,6 +192,7 @@ if (kst_qt5)
     get_filename_component(QT_BINARY_DIR ${qmakebin} PATH)
     message(STATUS "Using Qt5 from ${QT_BINARY_DIR}")
     set(CMAKE_PREFIX_PATH ${QT_BINARY_DIR}/..)
+    set(QT_PLUGINS_DIR ${QT_BINARY_DIR}/../plugins)
     use_qt5lib(Qt5Concurrent)
     use_qt5lib(Qt5Widgets)
     use_qt5lib(Qt5Network)
@@ -516,12 +517,22 @@ if(APPLE)
     set(contents_dir ${kst_binary_name}.app/Contents)
 
     set(app ${bundle_dir}/${kst_binary_name}.app)
-    install(DIRECTORY "${QT_PLUGINS_DIR}/imageformats" DESTINATION ${bundle_dir}/${contents_dir}/plugins COMPONENT Runtime)
+    install(DIRECTORY "${QT_PLUGINS_DIR}/imageformats" DESTINATION ${contents_dir}/plugins COMPONENT Runtime)
+
+    # install and link the icon file in the bundle
+    install(FILES ${kst_dir}/src/images/kst.icns DESTINATION ${contents_dir}/Resources COMPONENT Runtime)
+    set_target_properties(
+        ${kst_binary_name}
+        PROPERTIES
+            MACOSX_BUNDLE_INFO_STRING "${kst_version}"
+            MACOSX_BUNDLE_ICON_FILE "kst.icns"
+    )
 
     install(CODE
         "file(GLOB qt_plugins \"${bundle_dir}/${contents_dir}/plugins/imageformats/*${CMAKE_SHARED_LIBRARY_SUFFIX}\")
         file(GLOB kst_plugins \"${bundle_dir}/${contents_dir}/plugins/*${CMAKE_SHARED_MODULE_SUFFIX}\")
         set(libs \${qt_plugins} \${kst_plugins})
+        set(BU_CHMOD_BUNDLE_ITEMS 1)
         include(BundleUtilities)
         fixup_bundle(\"${app}\" \"\${libs}\" \"${dir}\") "
         COMPONENT RUNTIME)
