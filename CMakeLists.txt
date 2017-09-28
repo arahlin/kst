@@ -467,8 +467,8 @@ endif()
 
 
 # rpm
-if(UNIX)
-    set(CPACK_SET_DESTDIR "ON")
+if(UNIX AND NOT APPLE)
+    set(CPACK_SET_DESTDIR ON)
 endif()
 FILE(READ ${CPACK_RESOURCE_FILE_LICENSE} data)
 string(REPLACE "\"" "\\\"" CPACK_RPM_PACKAGE_LICENSE ${data}) # escape quotes
