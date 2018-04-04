@@ -37,6 +37,7 @@ class KSTWIDGETS_EXPORT ScalarSelector : public QWidget, public Ui::ScalarSelect
     ScalarPtr selectedScalar();
     void setSelectedScalar(ScalarPtr selectedScalar);
     void setSelectedScalar(QString name);
+    QString SR();
 
     void fillScalars();
 
@@ -47,9 +48,11 @@ class KSTWIDGETS_EXPORT ScalarSelector : public QWidget, public Ui::ScalarSelect
     virtual QSize	minimumSizeHint () const;
 
     int iconWidth() const;
+    void setIsFOverSR(bool is_f_over_sr);
 
   Q_SIGNALS:
     void selectionChanged(const QString&);
+    void SRChanged(const QString&);
 
   private Q_SLOTS:
     void newScalar();
@@ -59,10 +62,22 @@ class KSTWIDGETS_EXPORT ScalarSelector : public QWidget, public Ui::ScalarSelect
     void updateDescriptionTip();
     void updateScalarList();
 
+    void ratioChanged();
+    void cutoffChanged();
+    void srChanged();
+
+  public Q_SLOTS:
+    void setSR(const QString &sr);
+
   private:
     ScalarListSelector* _scalarListSelector;
     ObjectStore *_store;
     bool _defaultsSet;
+
+    enum ControlField {Ratio, Cutoff, SampleRate, None};
+
+    void updateFields(ControlField cf);
+
 };
 
 }

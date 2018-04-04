@@ -136,6 +136,16 @@ bool Document::save(const QString& to) {
   } else {
     xml.writeAttribute("version", objectStore()->sessionVersionString);
   }
+  if (_win->scriptServerNameSet()) {
+    QString server_name = _win->scriptServerName();
+    QString user_name = "--"+kstApp->userName();
+    if (server_name.endsWith(user_name)) {
+      server_name.remove(server_name.lastIndexOf(user_name),10000);
+      xml.writeAttribute("scriptServerNameHasUserName", QVariant(true).toString());
+    }
+
+    xml.writeAttribute("scriptServerName", server_name);
+  }
 
   xml.writeStartElement("data");
   foreach (DataSourcePtr s, objectStore()->dataSourceList()) {
@@ -271,6 +281,15 @@ bool Document::open(const QString& file) {
         if (version.size()>2) {
           objectStore()->sessionVersion += version[2].toInt();
         }
+        QString server_name = attrs.value("scriptServerName").toString();
+        if (attrs.value("scriptServerNameHasUserName").toString() == "true") {
+          server_name += "--"  + kstApp->userName();
+        }
+
+        if (!server_name.isEmpty()) {
+          _win->setScriptServerName(server_name);
+        }
+
         //qDebug() << "version" << version << objectStore()->sessionVersion;
       } else if (n == "data") {
         if (state != Unknown) {

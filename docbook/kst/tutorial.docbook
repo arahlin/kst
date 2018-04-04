@@ -1,37 +1,6 @@
 <chapter id="tutorial">
 
-<chapterinfo>
-<authorgroup>
-<author>
-<firstname>Barth</firstname>
-<othername></othername>
-<surname>Netterfield</surname>
-<affiliation><address><email>kst@kde.org</email></address></affiliation>
-</author>
-<author>
-<firstname>Rick</firstname>
-<othername></othername>
-<surname>Chern</surname>
-<affiliation><address><email>kst@kde.org</email></address></affiliation>
-</author>
-</authorgroup>
-
-
-
-<copyright>
-<year>2004</year>
-<holder>The University of British Columbia</holder>
-</copyright>
-
-<copyright>
-<year>2004 - 2017</year>
-<holder>C. Barth Netterfield</holder>
-</copyright>
-
-
-</chapterinfo>
 <title>The &kst; Tutorial</title>
-
 
 
 <sect1 id="Welcome">
@@ -85,20 +54,8 @@ useful results.
 </para>
 
 <para>
-The following instructions assume linux or osX.
+The following instructions assume you are working in a broadly bash-compatible shell, such as you would in linux or MacOS.
 </para>
-
-<para>
-  
-This tutorial uses a demo package of data files which are available online at <ulink
-url="http://omega.astro.utoronto.ca/kst/tutorial/kst_tutorialdata.tgz">http://omega.astro.utoronto.ca/kst/tutorial/kst_tutorialdata.tgz</ulink>.
-Download and untar the package, and change to the resulting directory:
-
-<screen><userinput><command>tar -zxvf kst_tutorialdata.tgz</command>
-<command>cd kst_tutorialdata</command></userinput></screen>
-
-</para>
-
 
 <para>
 To obtain an overview of all available &kst; command-line options, type:
@@ -146,7 +103,7 @@ Ascii File Options - for ascii files only: these are all sticky
       --asciiReadUnits &lt;Line&gt;  Read units from line &lt;Line&gt;
       --asciiNoUnits           Do not read units
       --asciiSpaceDelim        Columns are Space/tab delimited
-      --asciiDelim &lt;char&gt;      Columns are dlimited with &lt;char&gt;
+      --asciiDelim &lt;char&gt;      Columns are delimited with &lt;char&gt;
       --asciiFixedWidth &lt;w&gt;    Columns have width &lt;w&gt;
       --asciiNoFixedWidth      Columns are delimited, not fixed width
       --asciiDecimalDot        Use a . as a decimal separator (ie, 10.1)
@@ -209,8 +166,17 @@ Plot column 2 and column 3 in plot P1 and column 4 in plot P2
 </para>
 
 <para>
+  
+This tutorial uses a demo ascii data file which is available at <ulink
+url="gyrodata.dat.gz">gyrodata.dat.gz</ulink>.
+Download the file with your browser, and gunzip it.
+
+<screen><userinput><command>gunzip gyrodata.dat.gz</command></userinput></screen>
+</para>
+
+<para>
 We will first take a look at reading the ASCII file
-<filename>gyrodata.dat</filename>, included in the demo package.
+<filename>gyrodata.dat</filename> that we just downloaded.
 ASCII files are one of the many file types &kst; is capable of
 reading.  In ASCII files, data is arranged in columns, with each
 column corresponding to a field, and the column numbers (beginning
@@ -424,8 +390,7 @@ The <guilabel>Data Range</guilabel> section is used to specify the
 range of data to read from the selected vectors in the input file. The
 following discussion assumes knowledge of <quote>frames</quote>.  For ASCII
 files such as <filename>gyrodata.dat</filename>, a frame is simply a row of
-data, though for other formats this can be more complicated.  For a detailed description of this
-concept, see <xref linkend="Frames"/>.
+data, though for other formats this can be more complicated.
 </para>
 
 <variablelist>
@@ -584,12 +549,7 @@ To take a closer look at that plot, right
 click in it and select the <guimenuitem>Maximize</guimenuitem> menu
 item (see below).  Notice that the menu item shows that <guimenuitem>Z</guimenuitem>
 is a shortcut for this, so you could also just type <keycap>Z</keycap> in the plot rather than
-using the context menu for this.  Selecting <guimenuitem>Maximize</guimenuitem> (either
-way) will cause the selected plot to fill the entire kst window.  Selecting 
-<guimenuitem>Maximize</guimenuitem> (or typing <keycap>Z</keycap> in the plot) again will restore it the plots to their previous
-arrangement.  This is especially valuable if you have a grid of many small plots
-and want to temporarily look at just one of them.  Obviously typing <keycap>Z</keycap> is going to be the most convienient way
-to do this, but the context menu is there in case you forget.
+using the context menu for this.  Selecting <guimenuitem>Maximize</guimenuitem> (either with <keycap>Z</keycap> or with the menu) will cause the selected plot to fill the entire kst window.  
 </para>
 <screenshot>
 <screeninfo>Maximizing a plot</screeninfo>
@@ -602,6 +562,24 @@ to do this, but the context menu is there in case you forget.
 </textobject>
 </mediaobject>
 </screenshot>
+
+<screenshot>
+<screeninfo>A plot after Maximizing</screeninfo>
+<mediaobject>
+<imageobject>
+<imagedata fileref="Screenshot-kst-zoomed.png" format="PNG" />
+</imageobject>
+<textobject>
+<phrase>Maximizing a plot</phrase>
+</textobject>
+</mediaobject>
+</screenshot>
+<para>
+Selecting <guimenuitem>Maximize</guimenuitem> (or typing <keycap>Z</keycap> in the plot) again will restore it the plots to their previous
+arrangement.  This is especially valuable if you have a grid of many small plots
+and want to temporarily look at just one of them.  Obviously typing <keycap>Z</keycap> is going to be the most convenient way
+to do this, but the context menu is there in case you forget.
+</para>
 
 <para>
 In &kst;, it is very easy to zoom and scroll the data, using either the
@@ -625,7 +603,7 @@ Holding &Ctrl; when you do this will cause the plot to zoom only in X.
 <para>
 Arrow keys scroll the plot. Arrow keys with &Shift; held down will change the scale.
 The <keycap>M</keycap> key auto-zooms the plots to view all of the data.  Play around with these
-options to become familier with the various options.
+options to become familiar with the various options.
 </para>
 
 <para>
@@ -664,12 +642,25 @@ equivalent to selecting <guimenu>X Mouse Zoom Mode</guimenu> from the
 fileref="Icon-kst-xmousezoom.png"
 format="PNG"/></imageobject></inlinemediaobject> toolbar button). If you
 then move the mouse, you will see that it is now dragging a vertical line
-the heght of the plots in both of the plots that are tied to gether.  
+the height of the plots in both of the plots that are tied together.
 While keeping
 &Ctrl; held down, drag a rectangle in the middle plot.
 While dragging, the region you are selecting will be displayed in both 
 tied plots.  Both plots will rescale to the region you have selected.
 </para>
+
+<screenshot>
+<screeninfo>Tied Zoom</screeninfo>
+<mediaobject>
+<imageobject>
+<imagedata fileref="Screenshot-kst-tiedzooming.png" format="PNG" />
+</imageobject>
+<textobject>
+<phrase>Tied Zoom</phrase>
+</textobject>
+</mediaobject>
+</screenshot>
+
 
 <para>
 As with the mouse actions, the keyboard based zoom/scrolling actions
@@ -742,13 +733,13 @@ Then, from the <guimenu>Create</guimenu> menu select
 
 <para>
   It is hard to see any details in this plot - a log-log plot would be
-  much easier. To convert the Y axis to log hit <keycap>L</keycap> and
-  to convert the X axis to log hit <keycap>G</keycap>.  (These options
+  much easier. To toggle the Y axis to log press <keycap>l</keycap> (that is, small <keycap>L</keycap>) and
+  to toggle the X axis to log press <keycap>g</keycap>.  (These options
   are also available in the context menu under the 
   <guimenuitem>Zoom</guimenuitem> submenu in case you forget the keyboard
   commands).  The plot will now be log-log, as shown:
 </para>
-
+ 
 <screenshot>
 <screeninfo>Spectrum</screeninfo>
 <mediaobject>
@@ -762,12 +753,16 @@ Then, from the <guimenu>Create</guimenu> menu select
 </screenshot>
 
 <para>
-  From the <guimenu>Create</guimenu> you can similarly create histograms, spectograms,
-  and equations of fields you have loaded.
+  Hitting <keycap>l</keycap> (small <keycap>L</keycap>) and <keycap>g</keycap> will toggle back to linear axis.
+</para>
+
+<para>
+  From the <guimenu>Create</guimenu> you can similarly create histograms, spectrograms and equations
+  of fields you have loaded.
 </para>
 </sect1>
 
-<sect1 id="filters">
+<sect1 id="tutorial-filters">
 <title>Filters</title>
 <para>
 With &kst;, we can apply a variety of fits and filters to vectors in kst.
@@ -843,18 +838,6 @@ This will bring up the New Filter Dialog:
 </para>
 
 </sect1>
-
-<sect1 id="conclusion">
-<title>Conclusion</title>
-
-<para>
-This concludes the &kst;  tutorial.  Hopefully you have gained enough
-knowledge to begin to use &kst;. Keep in mind that this
-tutorial does not cover all the functionality of &kst;&mdash;there is
-still much to explore and experiment with. 
-</para>
-</sect1>
-
 
 </chapter>
 

@@ -111,7 +111,8 @@ MainWindow::MainWindow() :
     _ae_display(2),
     _ae_export_all(false),
     _ae_autosave_period(0),
-    _ae_Timer(0)
+    _ae_Timer(0),
+    _sessionFileName(QString())
 {
   _doc = new Document(this);
   _scriptServer = new ScriptServer(_doc->objectStore());
@@ -120,9 +121,10 @@ MainWindow::MainWindow() :
   _tabWidget = new TabWidget(this);
   _undoGroup = new QUndoGroup(this);
   _debugDialog = new DebugDialog(this);
+
   Debug::self()->setHandler(_debugDialog);
 
-  setWindowTitle("Kst");
+  setKstWindowTitle();
 
   createActions();
   createMenus();
@@ -300,7 +302,8 @@ void MainWindow::saveAs() {
   //QString currentP = QDir::currentPath();
   _doc->save(fn);
   QDir::setCurrent(restorePath);
-  setWindowTitle("Kst - " + fn);
+  _sessionFileName = fn;
+  setKstWindowTitle();
   updateRecentKstFiles(fn);
 }
 
@@ -364,6 +367,41 @@ QAction* MainWindow::createRecentFileAction(const QString& filename, int idx, co
 void MainWindow::updateRecentKstFiles(const QString& filename)
 {
   updateRecentFiles("recentKstFileList", _fileMenu, _bottomRecentKstActions, _recentKstFilesMenu, filename, SLOT(openRecentKstFile()));
+}
+
+void MainWindow::setKstWindowTitle()
+{
+  QString title = "Kst";
+  QString server_name = _scriptServer->serverName;
+  QString user_name = "--"+kstApp->userName();
+
+  if (server_name.endsWith(user_name)) {
+    server_name.remove(server_name.lastIndexOf(user_name),10000);
+  }
+
+  if (!_sessionFileName.isEmpty()) {
+    title += " - " + _sessionFileName;
+  }
+  if (scriptServerNameSet()) {
+    title += " -- " + server_name;
+  }
+  setWindowTitle(title);
+}
+
+QString MainWindow::scriptServerName()
+{
+  return _scriptServer->serverName;
+}
+
+bool MainWindow::scriptServerNameSet()
+{
+  return _scriptServer->serverNameSet;
+}
+
+void MainWindow::setScriptServerName(QString server_name)
+{
+  _scriptServer->setScriptServerName(server_name);
+  setKstWindowTitle();
 }
 
 void MainWindow::copyTab()
@@ -526,7 +564,8 @@ bool MainWindow::initFromCommandLine() {
     ok = false;
   }
   if (!P.kstFileName().isEmpty()) {
-    setWindowTitle("Kst - " + P.kstFileName());
+    _sessionFileName = P.kstFileName();
+    setKstWindowTitle();
   }
   _doc->setChanged(false);
   return ok;
@@ -547,7 +586,8 @@ void MainWindow::openFile(const QString &file) {
     QMessageBox::critical(this, tr("Kst"),tr("Error opening document:\n  '%1'\n%2\n").arg(file, lastError));
   }
 
-  setWindowTitle("Kst - " + file);
+  _sessionFileName = file;
+  setKstWindowTitle();
   updateRecentKstFiles(file);
 }
 

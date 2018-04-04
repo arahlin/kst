@@ -72,31 +72,37 @@ namespace Kst {
 
 ScriptServer::ScriptServer(ObjectStore *obj) : _server(new QLocalServer(this)), _store(obj),_interface(0) {
 
-    QString initial="kstScript";
+    QString initial;
 
+    initial = kstApp->userName();
+
+    serverNameSet = false;
 
     // The command line hasn't been parsed yet, so
     // we can't rely on that to get the server name.
     QStringList args= qApp->arguments();
     for(int i=0;i<args.size();i++) {
-        if(args.at(i).startsWith("--serverName=")) {
-            initial=args.at(i);
-            initial.remove("--serverName=");
-        }
+        if (args.at(i).startsWith("--serverName=")) {
+          initial=args.at(i);
+          initial.remove("--serverName=");
+          serverNameSet = true;
+      }
     }
 
-    QString connectTo=initial;
+    serverName=initial;
+
+    int j = 1;
     while(1) {
         QLocalSocket socket;
-        socket.connectToServer(connectTo);
+        socket.connectToServer(serverName);
         socket.waitForConnected(300);
         if(socket.state()!=QLocalSocket::ConnectedState) {
-            _server->removeServer(connectTo);
-            _server->listen(connectTo);
+            _server->removeServer(serverName);
+            _server->listen(serverName);
             break;
         }
         socket.disconnectFromServer();
-        connectTo=initial+QString::number(connectTo.remove(initial).toInt()+1);
+        serverName=initial+"-"+QString::number(j++);
     }
     connect(_server,SIGNAL(newConnection()),this,SLOT(procConnection()));
 
@@ -241,7 +247,29 @@ ScriptServer::ScriptServer(ObjectStore *obj) : _server(new QLocalServer(this)), 
 ScriptServer::~ScriptServer()
 {
     delete _server;
-    delete _interface;
+  delete _interface;
+}
+
+void ScriptServer::setScriptServerName(QString initial)
+{
+  int j = 1;
+
+  _server->close();
+  serverName = initial;
+  while(1) {
+      QLocalSocket socket;
+      socket.connectToServer(serverName);
+      socket.waitForConnected(300);
+      if(socket.state()!=QLocalSocket::ConnectedState) {
+          _server->removeServer(serverName);
+          _server->listen(serverName);
+          break;
+      }
+      socket.disconnectFromServer();
+      serverName=initial+"-"+QString::number(j++);
+  }
+  serverNameSet = true;
+  //connect(_server,SIGNAL(newConnection()),this,SLOT(procConnection()));
 }
 
 /** Conv. function which takes a response, and executes if 'if' statement is unexistant or true. */

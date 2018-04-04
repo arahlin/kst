@@ -27,6 +27,18 @@ ScalarSelector::ScalarSelector(QWidget *parent, ObjectStore *store)
 
   _defaultsSet = false;
   setupUi(this);
+  if (property("isFOverSR").toBool()) {
+    _cutoffLabel->show();
+    _cutoff->show();
+    _SRLabel->show();
+    _SR->show();
+
+  } else {
+    _cutoffLabel->hide();
+    _cutoff->hide();
+    _SRLabel->hide();
+    _SR->hide();
+  }
 
   _newScalar->setIcon(KstGetIcon("kst_scalarnew"));
   _editScalar->setIcon(KstGetIcon("kst_scalaredit"));
@@ -44,7 +56,13 @@ ScalarSelector::ScalarSelector(QWidget *parent, ObjectStore *store)
   connect(_selectScalar, SIGNAL(pressed()), this, SLOT(selectScalar()));
   connect(_scalar, SIGNAL(editTextChanged(QString)), this, SLOT(emitSelectionChanged()));
   connect(_scalar, SIGNAL(editTextChanged(QString)), this, SLOT(updateDescriptionTip()));
+  connect(_scalar, SIGNAL(editTextChanged(QString)), this, SLOT(ratioChanged()));
+  connect(_cutoff, SIGNAL(textEdited(QString)), this, SLOT(cutoffChanged()));
+  connect(_SR, SIGNAL(textChanged(QString)), this, SLOT(srChanged()));
+  connect(_SR, SIGNAL(textChanged(QString)), this, SIGNAL(SRChanged(QString)));
+
   connect(UpdateServer::self(), SIGNAL(objectListsChanged()), this, SLOT(updateScalarList()));
+
 }
 
 
@@ -53,6 +71,35 @@ ScalarSelector::~ScalarSelector() {
 
 int ScalarSelector::iconWidth() const {
   return fontMetrics().lineSpacing()*4/3;
+}
+
+void ScalarSelector::setIsFOverSR(bool is_f_over_sr)
+{
+  setProperty("isFOVerSR", is_f_over_sr);
+
+  if (is_f_over_sr) {
+    _cutoffLabel->show();
+    _cutoff->show();
+    _SRLabel->show();
+    _SR->show();
+
+    QSize size = _scalar->size();
+    size.setWidth(fontMetrics().width("000000000"));
+    _SR->setMinimumSize(size);
+    _cutoff->setMinimumSize(size);
+
+    size.setWidth(fontMetrics().width("0000000000000"));
+    _scalar->setMinimumSize(size);
+
+    //setMinimumWidth(3*min_width + _cutoffLabel->width() + _SRLabel->width()+3*_newScalar->width());
+
+  } else {
+    _cutoffLabel->hide();
+    _cutoff->hide();
+    _SRLabel->hide();
+    _SR->hide();
+  }
+
 }
 
 QSize ScalarSelector::minimumSizeHint() const {
@@ -106,7 +153,7 @@ ScalarPtr ScalarSelector::selectedScalar() {
   }
 
   if (!existingScalar) {
-     // Create the Scalar.
+    // Create the Scalar.
     bool ok = false;
     double value = _scalar->currentText().toDouble(&ok);
     if (!ok) {
@@ -185,6 +232,14 @@ void ScalarSelector::setSelectedScalar(QString Name) {
       setSelectedScalar(scalar);
     }
   }
+}
+
+void ScalarSelector::setSR(const QString &SR) {
+  _SR->setText(SR);
+}
+
+QString ScalarSelector::SR() {
+  return _SR->text();
 }
 
 
@@ -292,6 +347,99 @@ void ScalarSelector::updateScalarList() {
   } else {
     fillScalars();
   }
+}
+
+void ScalarSelector::ratioChanged() {
+  updateFields(Ratio);
+}
+
+void ScalarSelector::cutoffChanged() {
+  updateFields(Cutoff);
+}
+
+void ScalarSelector::srChanged() {
+  updateFields(SampleRate);
+}
+
+void ScalarSelector::updateFields(ControlField control_field) {
+
+
+  // Start Ratio
+  // Last Cutoff
+  // Range SR
+
+  double ratio;
+  double cutoff;
+  double frequency;
+  bool ok = false;
+
+  // set ratio: the value of the selected scalar, or evaluate as equation, or convert to double.
+  if (_scalar->itemData(_scalar->findText(_scalar->currentText())).value<Scalar*>()) {
+    ratio = ScalarPtr(_scalar->itemData(_scalar->findText(_scalar->currentText())).value<Scalar*>())->value();
+  } else {
+    ok = false;
+    ratio = _scalar->currentText().toDouble(&ok);
+    if (!ok) {
+      ratio = Equations::interpret(_store, _scalar->currentText().toLatin1(), &ok);
+    }
+
+    if (!ok) {
+      ratio = 0;
+    }
+  }
+
+  // set cutoff: either evaluate as equation, or convert to double.
+  ok = false;
+  cutoff = _cutoff->text().toDouble(&ok);
+  if (!ok) {
+    cutoff = Equations::interpret(_store, _cutoff->text().toLatin1(), &ok);
+  }
+
+  if (!ok) {
+    cutoff = 0.0;
+  }
+
+  // set frequency: either evaluate as equation, or convert to double.
+  ok = false;
+  frequency = _SR->text().toDouble(&ok);
+  if (!ok) {
+    frequency = Equations::interpret(_store, _SR->text().toLatin1(), &ok);
+  }
+
+  if (!ok) {
+    frequency = 0.0;
+  }
+
+  // keep physical
+  if (cutoff <=0.0) {
+    cutoff = 1.0;
+  }
+
+  if (frequency <= 0) {
+    frequency = 1.0;
+  }
+
+  if (ratio <= 0) {
+    ratio = 1.0;
+  }
+
+  if (control_field == Ratio) { // Frequency follows ratio: Keep SR fixed
+    cutoff = ratio * frequency;
+    _cutoff->setText(QString::number(cutoff, 'g', 12));
+  } else if (control_field == Cutoff) { // Ratio follows frequency: Keep SR fixed
+    ratio = cutoff/frequency;
+    setDefaultValue(ratio);
+    //QString string = QString::number(ratio, 'g', 12);
+    //_scalar->addItem(string, qVariantFromValue(0));
+    //_scalar->setCurrentIndex(_scalar->findText(string));
+    //_scalar->setCurrentText(QString::number(ratio, 'g', 12));
+  } else if (control_field == SampleRate) { // Cutoff follows SR.  Keep ratio fixed
+    cutoff = ratio * frequency;
+    _cutoff->setText(QString::number(cutoff, 'g', 12));
+    //ratio = cutoff/frequency;
+    //_scalar->setCurrentText(QString::number(ratio, 'g', 12));
+  }
+
 }
 
 }
