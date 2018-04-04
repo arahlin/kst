@@ -117,15 +117,6 @@ if(APPLE)
 			DESTINATION ${plugins_dir} COMPONENT Runtime)
 	endif()
 
-	# install and link the icon file in the bundle
-	install(FILES ${kst_dir}/src/images/kst.icns DESTINATION ${conf_dir} COMPONENT Runtime)
-	set_target_properties(
-            ${kst_binary_name}
-            PROPERTIES
-            MACOSX_BUNDLE_INFO_STRING "${kst_version}"
-            MACOSX_BUNDLE_ICON_FILE "kst.icns"
-	    )
-
 	set(qtconf "\${CMAKE_INSTALL_PREFIX}/${conf_dir}/qt.conf")
 	INSTALL(CODE "
 		file(WRITE \"${qtconf}\" \"[Paths]\\nPlugins = ${plugins_path}\\n\")
