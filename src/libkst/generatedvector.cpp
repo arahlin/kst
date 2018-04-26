@@ -45,6 +45,8 @@ ScriptInterface* GeneratedVector::createScriptInterface() {
 
 void GeneratedVector::save(QXmlStreamWriter &s) {
   s.writeStartElement("generatedvector");
+  s.writeAttribute("first", QString::number(value(0)));
+  s.writeAttribute("last", QString::number(value(length()-1)));
   s.writeAttribute("min", QString::number(min()));
   s.writeAttribute("max", QString::number(max()));
   s.writeAttribute("count", QString::number(length()));
@@ -61,24 +63,23 @@ void GeneratedVector::changeRange(double x0, double x1, int n) {
   if (n != length()) {
     resize(n, false);
   }
-  if (x0 > x1) {
-    double tx;
-    tx = x0;
-    x0 = x1;
-    x1 = tx;
-  } else if (x0 == x1) {
-    x1 = x0 + 0.1;
-  }
 
   for (int i = 0; i < n; i++) {
     _v_raw[i] = x0 + double(i) * (x1 - x0) / double(n - 1);
   }
 
-  _min = x0;
-  _max = x1;
+  if (x0 < x1) {
+    _min = x0;
+    _max = x1;
+  } else {
+    _min = x1;
+    _max = x0;
+  }
 
-  _scalars["min"]->setValue(x0);
-  _scalars["max"]->setValue(x1);
+  _scalars["min"]->setValue(_min);
+  _scalars["max"]->setValue(_max);
+  _scalars["first"]->setValue(x0);
+  _scalars["last"]->setValue(x1);
 
   _numNew = length();
   registerChange();

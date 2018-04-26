@@ -25,6 +25,8 @@
 
 static const QString& VECTOR_IN_X = "X Vector";
 static const QString& VECTOR_IN_Y = "Y Vector";
+static const QString& SCALAR_IN_OFFSET = "Offset";
+
 static const QString& VECTOR_OUT_Y_FITTED = "Fit";
 static const QString& VECTOR_OUT_Y_RESIDUALS = "Residuals";
 static const QString& VECTOR_OUT_Y_PARAMETERS = "Parameters Vector";
@@ -44,12 +46,19 @@ class ConfigWidgetFitGaussianUnweightedPlugin : public Kst::DataObjectConfigWidg
       _store = store; 
       _vectorX->setObjectStore(store);
       _vectorY->setObjectStore(store);
+      _scalarOffset->setObjectStore(store);
+      _forceOffset->setChecked(false);
+      _scalarOffset->setEnabled(false);
     }
 
     void setupSlots(QWidget* dialog) {
       if (dialog) {
         connect(_vectorX, SIGNAL(selectionChanged(QString)), dialog, SIGNAL(modified()));
         connect(_vectorY, SIGNAL(selectionChanged(QString)), dialog, SIGNAL(modified()));
+        connect(_scalarOffset, SIGNAL(selectionChanged(QString)), dialog, SIGNAL(modified()));
+        _scalarOffset->setDefaultValue(0.0);
+        connect(_forceOffset, SIGNAL(toggled(bool)), dialog, SIGNAL(modified()));
+        connect(_forceOffset, SIGNAL(toggled(bool)), _scalarOffset, SLOT(setEnabled(bool)));
       }
     }
 
@@ -70,6 +79,9 @@ class ConfigWidgetFitGaussianUnweightedPlugin : public Kst::DataObjectConfigWidg
     Kst::VectorPtr selectedVectorX() { return _vectorX->selectedVector(); };
     void setSelectedVectorX(Kst::VectorPtr vector) { return _vectorX->setSelectedVector(vector); };
 
+    Kst::ScalarPtr scalarOffset() {return _scalarOffset->selectedScalar(); };
+    void setScalarOffset(Kst::ScalarPtr scalar) {_scalarOffset->setSelectedScalar(scalar);};
+
     Kst::VectorPtr selectedVectorY() { return _vectorY->selectedVector(); };
     void setSelectedVectorY(Kst::VectorPtr vector) { return _vectorY->setSelectedVector(vector); };
 
@@ -77,20 +89,33 @@ class ConfigWidgetFitGaussianUnweightedPlugin : public Kst::DataObjectConfigWidg
       if (FitGaussianUnweightedSource* source = static_cast<FitGaussianUnweightedSource*>(dataObject)) {
         setSelectedVectorX(source->vectorX());
         setSelectedVectorY(source->vectorY());
+        _forceOffset->setChecked(source->_forceOffset);
+        setScalarOffset(source->scalarOffset());
       }
     }
 
     virtual bool configurePropertiesFromXml(Kst::ObjectStore *store, QXmlStreamAttributes& attrs) {
-      Q_UNUSED(store);
-      Q_UNUSED(attrs);
-
       bool validTag = true;
 
-//       QStringRef av;
-//       av = attrs.value("value");
-//       if (!av.isNull()) {
-//         _configValue = QVariant(av.toString()).toBool();
-//       }
+      setObjectStore(store);
+
+      QStringRef av;
+      bool force_offset = false;
+      av = attrs.value("ForceOffset");
+      if (!av.isNull()) {
+        force_offset = QVariant(av.toString()).toBool();
+      }
+      _forceOffset->setChecked(force_offset);
+//      if (force_offset) {
+//   The tickets will also be taken care of.     av = attrs.value("Offset");
+//        if (!av.isNull()) {
+//          QString name = av.toString();
+//          Kst::ObjectPtr object = store->retrieveObject(name);
+//          Kst::ScalarPtr scalar = Kst::kst_cast<Kst::Scalar>(object);
+//          setScalarOffset(scalar);
+//        }
+
+//      }
 
       return validTag;
     }
@@ -101,6 +126,10 @@ class ConfigWidgetFitGaussianUnweightedPlugin : public Kst::DataObjectConfigWidg
         _cfg->beginGroup("Fit Gaussian Plugin");
         _cfg->setValue("Input Vector X", _vectorX->selectedVector()->Name());
         _cfg->setValue("Input Vector Y", _vectorY->selectedVector()->Name());
+        _cfg->setValue("Force Offset", _forceOffset->isChecked());
+        if (_forceOffset->isChecked()) {
+          _cfg->setValue("Offset", _scalarOffset->selectedScalar()->Name());
+        }
         _cfg->endGroup();
       }
     }
@@ -120,6 +149,16 @@ class ConfigWidgetFitGaussianUnweightedPlugin : public Kst::DataObjectConfigWidg
         if (vectory) {
           setSelectedVectorX(vectory);
         }
+        bool force_offset = _cfg->value("Force Offset").toBool();
+        _forceOffset->setChecked(force_offset);
+        if (force_offset) {
+          QString scalarName = _cfg->value("Offset").toString();
+          object = _store->retrieveObject(scalarName);
+          Kst::Scalar* scalar = static_cast<Kst::Scalar*>(object);
+          if (scalar) {
+            setScalarOffset(scalar);
+          }
+        }
         _cfg->endGroup();
       }
     }
@@ -132,6 +171,7 @@ class ConfigWidgetFitGaussianUnweightedPlugin : public Kst::DataObjectConfigWidg
 
 FitGaussianUnweightedSource::FitGaussianUnweightedSource(Kst::ObjectStore *store)
 : Kst::BasicPlugin(store) {
+  _forceOffset = false;
 }
 
 
@@ -148,6 +188,9 @@ void FitGaussianUnweightedSource::change(Kst::DataObjectConfigWidget *configWidg
   if (ConfigWidgetFitGaussianUnweightedPlugin* config = static_cast<ConfigWidgetFitGaussianUnweightedPlugin*>(configWidget)) {
     setInputVector(VECTOR_IN_X, config->selectedVectorX());
     setInputVector(VECTOR_IN_Y, config->selectedVectorY());
+    setInputScalar(SCALAR_IN_OFFSET, config->scalarOffset());
+    _forceOffset = config->_forceOffset->isChecked();
+//    _offset = config->_scalarOffset->selectedScalar();
   }
 }
 
@@ -158,6 +201,11 @@ void FitGaussianUnweightedSource::setupOutputs() {
   setOutputVector(VECTOR_OUT_Y_PARAMETERS, "");
   setOutputVector(VECTOR_OUT_Y_COVARIANCE, "");
   setOutputScalar(SCALAR_OUT, "");
+
+  int i=0;
+  for (QString paramName = parameterName(i); !paramName.isEmpty(); paramName = parameterName(++i)) {
+    setOutputScalar(paramName, "");
+  }
 }
 
 
@@ -172,7 +220,7 @@ void function_initial_estimate( const double X[], const double Y[], int npts, do
 
   double A, C, D;
 
-  // find peak, vally, and mean
+  // find peak, valley, and mean
   for (int i = 0; i<npts; i++) {
     if (min_y > Y[i]) {
       min_y = Y[i];
@@ -222,8 +270,11 @@ double function_calculate(double x, double P[]) {
   double A = P[0];
   double B = 0.5/(P[1]*P[1]);
   double C = P[2];
-  double D = P[3];
+  double D = offset_;
 
+  if (n_params == 4) {
+    D = P[3];
+  }
   x -= C;
 
   return A*exp(-B*x*x) + D;
@@ -250,6 +301,7 @@ void function_derivative( double x, double P[], double dFdP[] ) {
 bool FitGaussianUnweightedSource::algorithm() {
   Kst::VectorPtr inputVectorX = _inputVectors[VECTOR_IN_X];
   Kst::VectorPtr inputVectorY = _inputVectors[VECTOR_IN_Y];
+  Kst::ScalarPtr inputScalarOffset = _inputScalars[SCALAR_IN_OFFSET];
 
   Kst::VectorPtr outputVectorYFitted = _outputVectors[VECTOR_OUT_Y_FITTED];
   Kst::VectorPtr outputVectorYResiduals = _outputVectors[VECTOR_OUT_Y_RESIDUALS];
@@ -257,6 +309,17 @@ bool FitGaussianUnweightedSource::algorithm() {
   Kst::VectorPtr outputVectorYCovariance = _outputVectors[VECTOR_OUT_Y_COVARIANCE];
   Kst::ScalarPtr outputScalar = _outputScalars[SCALAR_OUT];
 
+
+  if (_forceOffset) {
+    if (inputScalarOffset) {
+      offset_ = inputScalarOffset->value();
+    } else {
+      offset_ = 0;
+    }
+    n_params = 3;
+  } else {
+    n_params = 4;
+  }
 
   Kst::LabelInfo label_info = inputVectorY->labelInfo();
   label_info.name = tr("Gaussian Fit to %1").arg(label_info.name);
@@ -284,6 +347,11 @@ Kst::VectorPtr FitGaussianUnweightedSource::vectorY() const {
 }
 
 
+Kst::ScalarPtr FitGaussianUnweightedSource::scalarOffset() const {
+  return _inputScalars[SCALAR_IN_OFFSET];
+}
+
+
 QStringList FitGaussianUnweightedSource::inputVectorList() const {
   QStringList vectors(VECTOR_IN_X);
   vectors += VECTOR_IN_Y;
@@ -292,7 +360,8 @@ QStringList FitGaussianUnweightedSource::inputVectorList() const {
 
 
 QStringList FitGaussianUnweightedSource::inputScalarList() const {
-  return QStringList();
+  QStringList scalars(SCALAR_IN_OFFSET);
+  return scalars;
 }
 
 
@@ -322,8 +391,9 @@ QStringList FitGaussianUnweightedSource::outputStringList() const {
 
 
 void FitGaussianUnweightedSource::saveProperties(QXmlStreamWriter &s) {
-  Q_UNUSED(s);
-//   s.writeAttribute("value", _configValue);
+  QString force_offset;
+  force_offset.setNum(_forceOffset);
+  s.writeAttribute("ForceOffset", force_offset);
 }
 
 
@@ -342,6 +412,8 @@ QString FitGaussianUnweightedSource::parameterName(int index) const {
   case 3:
     parameter = "Offset";
     break;
+  default:
+    parameter = "";
   }
 
   return parameter;
@@ -359,10 +431,13 @@ Kst::DataObject *FitGaussianUnweightedPlugin::create(Kst::ObjectStore *store, Ks
 
     FitGaussianUnweightedSource* object = store->createObject<FitGaussianUnweightedSource>();
 
+    object->_forceOffset = config->_forceOffset->isChecked();
+
     if (setupInputsOutputs) {
       object->setupOutputs();
       object->setInputVector(VECTOR_IN_X, config->selectedVectorX());
       object->setInputVector(VECTOR_IN_Y, config->selectedVectorY());
+      object->setInputScalar(SCALAR_IN_OFFSET, config->scalarOffset());
     }
 
     object->setPluginName(pluginName());
